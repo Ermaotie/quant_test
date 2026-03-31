@@ -10,6 +10,8 @@
 - GitHub Actions 每日自动运行策略并输出最优策略。
 - 新增策略文件后，会自动触发回测工作流并生成排行榜产物。
 - 数据获取具备容灾链路：Binance REST -> data.binance.vision ->（可选）合成数据。
+- 支持双品种组合回测（BTC + ETH）。
+- 支持参数网格搜索，且复用同一份数据避免重复下载。
 
 ## Quick Start
 ```bash
@@ -38,3 +40,9 @@ python run_daily.py --output-dir artifacts
 1. 在 `strategies/` 新增策略类，继承 `StrategyBase`。
 2. 实现 `name`、`param_grid()`、`prepare()`、`on_bar()`。
 3. 推送后 GitHub Actions 自动回测并在产物中展示结果。
+python main.py
+```
+
+## Notes
+- 当前为研究型框架，便于快速验证策略，不含实盘下单。
+- 高频场景请重点关注滑点、手续费、资金费率对收益侵蚀。

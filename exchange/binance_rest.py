@@ -3,6 +3,7 @@ import os
 import time
 import zipfile
 from datetime import timedelta
+import time
 from typing import Iterable
 
 import pandas as pd
@@ -97,6 +98,8 @@ def _fetch_klines_from_data_vision(symbol: str, interval: str, start_time: str, 
 
 def fetch_klines(symbol: str, interval: str, start_time: str, end_time: str) -> pd.DataFrame:
     """Fetch klines with resilient fallback chain: REST -> Data Vision -> synthetic(optional)."""
+def fetch_klines(symbol: str, interval: str, start_time: str, end_time: str) -> pd.DataFrame:
+    """Fetch spot klines as OHLCV for research/backtest bars."""
     start_ms = _to_millis(start_time)
     end_ms = _to_millis(end_time)
 
@@ -165,6 +168,54 @@ def fetch_klines(symbol: str, interval: str, start_time: str, end_time: str) -> 
 
 def fetch_funding_rates(symbol: str, start_time: str, end_time: str) -> pd.Series:
     """Fetch perpetual funding rates. If blocked/unavailable, return empty and caller will fill zeros."""
+    while True:
+        params = {
+            "symbol": symbol,
+            "interval": interval,
+            "startTime": start_ms,
+            "endTime": end_ms,
+            "limit": limit,
+        }
+        resp = requests.get(url, params=params, timeout=15)
+        resp.raise_for_status()
+        rows = resp.json()
+        if not rows:
+            break
+
+        all_rows.extend(rows)
+        start_ms = rows[-1][0] + 1
+        if len(rows) < limit:
+            break
+        time.sleep(0.08)
+
+    if not all_rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(
+        all_rows,
+        columns=[
+            "open_time",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "close_time",
+            "quote_asset_volume",
+            "num_trades",
+            "taker_buy_base",
+            "taker_buy_quote",
+            "ignore",
+        ],
+    )
+    df["open_time"] = pd.to_datetime(df["open_time"], unit="ms", utc=True)
+    for col in ["open", "high", "low", "close", "volume"]:
+        df[col] = df[col].astype(float)
+    return df[["open_time", "open", "high", "low", "close", "volume"]].set_index("open_time")
+
+
+def fetch_funding_rates(symbol: str, start_time: str, end_time: str) -> pd.Series:
+    """Fetch perpetual funding rates and return time-indexed rate series."""
     start_ms = _to_millis(start_time)
     end_ms = _to_millis(end_time)
     url = f"{FUTURES_BASE_URL}/fapi/v1/fundingRate"
