@@ -1,0 +1,57 @@
+name: strategy-backtest
+
+on:
+  schedule:
+    - cron: "15 0 * * *" # daily at 00:15 UTC
+  workflow_dispatch:
+  push:
+    paths:
+      - "strategies/**"
+      - "engine/**"
+      - "analytics/**"
+      - "exchange/**"
+      - "config/settings.yaml"
+      - "run_daily.py"
+      - ".github/workflows/strategy_backtest.yml"
+  pull_request:
+    paths:
+      - "strategies/**"
+      - "engine/**"
+      - "analytics/**"
+      - "exchange/**"
+      - "config/settings.yaml"
+      - "run_daily.py"
+      - ".github/workflows/strategy_backtest.yml"
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    env:
+      ALLOW_SYNTHETIC_DATA: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run daily strategy scan
+        run: |
+          python run_daily.py --output-dir artifacts
+
+      - name: Publish summary
+        run: |
+          cat artifacts/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: strategy-backtest-artifacts
+          path: artifacts/
