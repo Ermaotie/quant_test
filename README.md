@@ -1,0 +1,35 @@
+# Personal Quant System (Binance Data + Local Simulation)
+
+## Features
+- Binance REST 获取 BTC/ETH K线数据。
+- 可选拉取并并入永续资金费率（`include_funding=true`）。
+- 本地模拟撮合（手续费、滑点、杠杆、再平衡阈值）。
+- 更真实的持仓核算：记录均价、已实现PnL、未实现PnL、资金费。
+- 策略层完全解耦（`StrategyBase` 抽象接口）。
+- 自动发现 `strategies/` 里的策略并批量回测。
+- GitHub Actions 每日自动运行策略并输出最优策略。
+- 新增策略文件后，会自动触发回测工作流并生成排行榜产物。
+
+## Quick Start
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python run_daily.py --output-dir artifacts
+```
+
+## GitHub Actions
+- 工作流文件：`.github/workflows/strategy_backtest.yml`
+- 触发场景：
+  - 每天 UTC 00:15 定时执行
+  - 手动触发（workflow_dispatch）
+  - `strategies/**` 等核心路径变更时自动触发
+- 产物：
+  - `artifacts/leaderboard.csv`
+  - `artifacts/best_strategy.json`
+  - `artifacts/summary.md`（同步到 Action Summary）
+
+## Add New Strategy
+1. 在 `strategies/` 新增策略类，继承 `StrategyBase`。
+2. 实现 `name`、`param_grid()`、`prepare()`、`on_bar()`。
+3. 推送后 GitHub Actions 自动回测并在产物中展示结果。

@@ -1,0 +1,27 @@
+symbols: ["BTCUSDT", "ETHUSDT"]
+interval: "1m"
+start_time: "2025-01-01 00:00:00"
+end_time: "2025-01-07 00:00:00"
+
+include_funding: true
+
+initial_equity: 10000.0
+leverage: 2.0
+
+fee_rate_taker: 0.0005
+slippage_bps: 2
+
+position_mode: "target_pct"
+max_position_pct: 1.0
+rebalance_threshold: 0.05
+
+strategy:
+  name: "ema_cross"
+  params:
+    fast: 12
+    slow: 48
+
+grid_search:
+  enabled: true
+  fast_list: [8, 12, 16]
+  slow_list: [32, 48, 72]
